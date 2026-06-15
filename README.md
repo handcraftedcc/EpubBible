@@ -2,7 +2,7 @@
 
 A local browser-based downloader for turning Bible XML files from the upstream Beblia repository into ebook-friendly EPUB archives.
 
-Open the web app here: [Bible Epub Downloader](./index.html).
+Open the web app here: [Bible Epub Downloader](https://handcraftedcc.github.io/EpubBible/).
 
 ## What This Project Does
 
