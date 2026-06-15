@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { convertTranslation, getSelectableTranslations } from "../src/app.js";
+import {
+  convertTranslation,
+  createComboboxState,
+  getSelectableTranslations,
+  selectComboboxOption,
+} from "../src/app.js";
 
 test("convertTranslation reports progress and downloads the built zip", async () => {
   const statuses = [];
@@ -97,4 +102,36 @@ test("getSelectableTranslations returns compact dropdown options", () => {
       description: "English · English/English_King_James_Bible.xml",
     },
   ]);
+});
+
+test("createComboboxState filters options and limits visible results", () => {
+  const state = createComboboxState(
+    [
+      { value: "1", label: "AcehBible", description: "AcehBible · AcehBible.xml" },
+      { value: "2", label: "King James Bible", description: "English · English_King_James_Bible.xml" },
+      { value: "3", label: "Lutherbibel 1912", description: "Deutsch · Lutherbibel_1912.xml" },
+    ],
+    {
+      query: "bible",
+      isOpen: true,
+      selectedValue: "2",
+      maxResults: 2,
+    },
+  );
+
+  assert.equal(state.buttonLabel, "King James Bible");
+  assert.equal(state.filteredOptions.length, 2);
+  assert.deepEqual(
+    state.filteredOptions.map((option) => option.label),
+    ["AcehBible", "King James Bible"],
+  );
+});
+
+test("selectComboboxOption clears the search query and closes the list", () => {
+  const next = selectComboboxOption("English/English_King_James_Bible.xml");
+  assert.deepEqual(next, {
+    query: "",
+    isOpen: false,
+    selectedValue: "English/English_King_James_Bible.xml",
+  });
 });

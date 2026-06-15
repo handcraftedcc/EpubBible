@@ -37,7 +37,11 @@ export async function convertTranslation({
 
 function getElements() {
   return {
-    translationSelect: document.querySelector("#translation-select"),
+    combobox: document.querySelector("[data-combobox]"),
+    translationToggle: document.querySelector("#translation-toggle"),
+    translationPopover: document.querySelector("#translation-popover"),
+    translationSearch: document.querySelector("#translation-search"),
+    translationOptions: document.querySelector("#translation-options"),
     convertButton: document.querySelector("#convert-button"),
     statusMessage: document.querySelector("#status-message"),
     errorMessage: document.querySelector("#error-message"),
@@ -52,23 +56,64 @@ export function getSelectableTranslations(entries, query = "") {
   }));
 }
 
-function renderSelectOptions(select, entries, selectedPath) {
+export function createComboboxState(options, { query = "", isOpen = false, selectedValue = null, maxResults = 25 } = {}) {
+  const filteredOptions = getSelectableTranslations(
+    options.map((option) => ({
+      name: option.label,
+      language: option.description.split(" · ")[0] ?? "",
+      path: option.value,
+    })),
+    query,
+  ).slice(0, maxResults);
+
+  const selectedOption = options.find((option) => option.value === selectedValue) ?? null;
+
+  return {
+    query,
+    isOpen,
+    selectedValue,
+    buttonLabel: selectedOption?.label ?? "Select a translation",
+    filteredOptions,
+  };
+}
+
+export function selectComboboxOption(value) {
+  return {
+    query: "",
+    isOpen: false,
+    selectedValue: value,
+  };
+}
+
+function renderCombobox(elements, entries, state) {
   const options = getSelectableTranslations(entries);
-  select.innerHTML = "";
+  const comboboxState = createComboboxState(options, state);
 
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = options.length === 0 ? "No translations available" : "Select a translation";
-  select.append(placeholder);
+  elements.translationToggle.textContent = comboboxState.buttonLabel;
+  elements.translationToggle.setAttribute("aria-expanded", String(comboboxState.isOpen));
+  elements.translationPopover.hidden = !comboboxState.isOpen;
+  elements.translationSearch.value = comboboxState.query;
+  elements.translationOptions.innerHTML = "";
 
-  for (const option of options) {
-    const element = document.createElement("option");
-    element.value = option.value;
-    element.textContent = `${option.label} - ${option.description}`;
-    if (option.value === selectedPath) {
-      element.selected = true;
-    }
-    select.append(element);
+  if (comboboxState.filteredOptions.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "combobox-empty";
+    empty.textContent = "No translations match your search.";
+    elements.translationOptions.append(empty);
+    return;
+  }
+
+  for (const option of comboboxState.filteredOptions) {
+    const item = document.createElement("li");
+    item.className = "combobox-option";
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", String(option.value === comboboxState.selectedValue));
+    item.dataset.value = option.value;
+    item.innerHTML = `
+      <span class="combobox-option-label">${option.label}</span>
+      <span class="combobox-option-description">${option.description}</span>
+    `;
+    elements.translationOptions.append(item);
   }
 }
 
@@ -76,6 +121,8 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
   const elements = getElements();
   const state = {
     entries: [],
+    query: "",
+    isOpen: false,
     selectedPath: null,
   };
 
@@ -93,7 +140,11 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
   }
 
   function updateSelectionState() {
-    renderSelectOptions(elements.translationSelect, state.entries, state.selectedPath);
+    renderCombobox(elements, state.entries, {
+      query: state.query,
+      isOpen: state.isOpen,
+      selectedValue: state.selectedPath,
+    });
     elements.convertButton.disabled = !selectedEntry();
   }
 
@@ -105,9 +156,37 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
     setStatus("Manifest ready.");
   }
 
-  elements.translationSelect.addEventListener("change", (event) => {
-    state.selectedPath = event.target.value || null;
+  elements.translationToggle.addEventListener("click", () => {
+    state.isOpen = !state.isOpen;
     updateSelectionState();
+    if (state.isOpen) {
+      elements.translationSearch.focus();
+    }
+  });
+
+  elements.translationSearch.addEventListener("input", (event) => {
+    state.query = event.target.value;
+    state.isOpen = true;
+    updateSelectionState();
+  });
+
+  elements.translationOptions.addEventListener("click", (event) => {
+    const option = event.target.closest(".combobox-option");
+    if (!option) {
+      return;
+    }
+    const next = selectComboboxOption(option.dataset.value);
+    state.query = next.query;
+    state.isOpen = next.isOpen;
+    state.selectedPath = next.selectedValue;
+    updateSelectionState();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!elements.combobox.contains(event.target)) {
+      state.isOpen = false;
+      updateSelectionState();
+    }
   });
 
   elements.convertButton.addEventListener("click", async () => {

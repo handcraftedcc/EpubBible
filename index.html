@@ -23,11 +23,37 @@
           <p>Select one source XML file and generate a ZIP of per-book EPUBs.</p>
         </div>
 
-        <label class="field" for="translation-select">
+        <label class="field" for="translation-search">
           <span>Translation</span>
-          <select id="translation-select" name="translation-select">
-            <option value="">Loading translations...</option>
-          </select>
+          <div class="combobox" data-combobox>
+            <button
+              id="translation-toggle"
+              class="combobox-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="translation-options"
+            >
+              Loading translations...
+            </button>
+            <div id="translation-popover" class="combobox-popover" hidden>
+              <input
+                id="translation-search"
+                class="combobox-search"
+                name="translation-search"
+                type="search"
+                placeholder="Search by language or translation"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+              />
+              <ul
+                id="translation-options"
+                class="combobox-options"
+                role="listbox"
+                aria-label="Available translations"
+              ></ul>
+            </div>
+          </div>
         </label>
 
         <div class="actions">
