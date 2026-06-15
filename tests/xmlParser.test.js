@@ -51,3 +51,21 @@ test("parseBibleXml normalizes translation, books, chapters, and verse text", as
     { number: "2", text: "And the earth was without form, and void." },
   ]);
 });
+
+test("parseBibleXml handles real upstream bible root elements", () => {
+  const xmlText = `\uFEFF<?xml version="1.0" encoding="utf-8"?>
+  <bible translation="Aceh Language (Alkitab HABA GET)" version="x">
+    <testament name="Old">
+      <book number="1">
+        <chapter number="1">
+          <verse number="1">Nibak awaiphon.</verse>
+        </chapter>
+      </book>
+    </testament>
+  </bible>`;
+
+  const parsed = parseBibleXml(xmlText);
+  assert.equal(parsed.translation, "Aceh Language (Alkitab HABA GET)");
+  assert.equal(parsed.books.length, 1);
+  assert.equal(parsed.books[0].title, "Genesis");
+});

@@ -1,8 +1,56 @@
-import { buildBookEpub, slugify } from "./epubBuilder.js";
+import { buildBookEpub, buildBookEpubEntries, slugify } from "./epubBuilder.js";
 import { createZipArchive } from "./zip.js";
 
-export function buildTranslationZip(parsedBible) {
-  const bookArtifacts = parsedBible.books.map((book) => buildBookEpub(book, parsedBible.translation));
+function getJsZip() {
+  if (typeof globalThis !== "undefined" && globalThis.JSZip) {
+    return globalThis.JSZip;
+  }
+  return null;
+}
+
+async function buildBookEpubWithJsZip(book, translation, JSZip) {
+  const zip = new JSZip();
+  const entries = buildBookEpubEntries(book, translation);
+  for (const entry of entries) {
+    if (entry.name === "mimetype") {
+      zip.file(entry.name, entry.data, { compression: "STORE" });
+    } else {
+      zip.file(entry.name, entry.data);
+    }
+  }
+
+  return {
+    fileName: buildBookEpub(book, translation).fileName,
+    zipPath: buildBookEpub(book, translation).zipPath,
+    bytes: await zip.generateAsync({
+      type: "uint8array",
+      mimeType: "application/epub+zip",
+      compression: "DEFLATE",
+    }),
+  };
+}
+
+export async function buildTranslationZip(parsedBible) {
+  const JSZip = getJsZip();
+  const bookArtifacts = JSZip
+    ? await Promise.all(parsedBible.books.map((book) => buildBookEpubWithJsZip(book, parsedBible.translation, JSZip)))
+    : parsedBible.books.map((book) => buildBookEpub(book, parsedBible.translation));
+
+  if (JSZip) {
+    const zip = new JSZip();
+    for (const artifact of bookArtifacts) {
+      zip.file(artifact.zipPath, artifact.bytes);
+    }
+    return {
+      fileName: `${slugify(parsedBible.translation)}_epubs.zip`,
+      bytes: await zip.generateAsync({
+        type: "uint8array",
+        mimeType: "application/zip",
+        compression: "DEFLATE",
+      }),
+    };
+  }
+
   return {
     fileName: `${slugify(parsedBible.translation)}_epubs.zip`,
     bytes: createZipArchive(

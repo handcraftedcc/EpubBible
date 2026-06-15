@@ -151,7 +151,7 @@ export function buildZipPath(book) {
   return `${book.testament}/${buildBookFileName(book.number, book.title)}`;
 }
 
-export function buildBookEpub(book, translation) {
+export function buildBookEpubEntries(book, translation) {
   const chapterNumbers = book.chapters.map((chapter) => chapter.number);
   const bookTitle = `${book.title} (${translation})`;
   const identifier = `${slugify(translation)}:${slugify(book.title)}`;
@@ -170,6 +170,11 @@ export function buildBookEpub(book, translation) {
     });
   }
 
+  return entries;
+}
+
+export function buildBookEpub(book, translation) {
+  const entries = buildBookEpubEntries(book, translation);
   return {
     fileName: buildBookFileName(book.number, book.title),
     zipPath: buildZipPath(book),

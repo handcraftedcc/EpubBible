@@ -20,19 +20,18 @@
       <section class="panel controls" aria-labelledby="controls-title">
         <div class="panel-heading">
           <h2 id="controls-title">Choose a Translation</h2>
-          <p>Search the generated manifest, select one source XML file, and generate a ZIP of per-book EPUBs.</p>
+          <p>Select one source XML file and generate a ZIP of per-book EPUBs.</p>
         </div>
 
-        <label class="field" for="search">
-          <span>Search</span>
-          <input id="search" name="search" type="search" placeholder="Search by language or translation" />
+        <label class="field" for="translation-select">
+          <span>Translation</span>
+          <select id="translation-select" name="translation-select">
+            <option value="">Loading translations...</option>
+          </select>
         </label>
 
-        <div id="selection-summary" class="selection-summary" aria-live="polite">No translation selected.</div>
-        <div id="translation-list" class="translation-list" role="listbox" aria-label="Available translations"></div>
-
         <div class="actions">
-          <button id="convert-button" type="button" disabled>Generate ZIP</button>
+          <button id="convert-button" type="button" disabled>Generate Epubs Zip</button>
         </div>
       </section>
 
@@ -43,6 +42,7 @@
       </section>
     </main>
 
+    <script src="./public/vendor/jszip.min.js"></script>
     <script type="module" src="./src/app.js"></script>
   </body>
 </html>

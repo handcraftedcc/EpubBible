@@ -17,7 +17,7 @@ export function extractTranslationName(translation) {
 }
 
 export function parseBibleXml(xmlText) {
-  const translationMatch = xmlText.match(/<xmlbible\b[^>]*\btranslation="([^"]*)"/i);
+  const translationMatch = xmlText.match(/<(?:xmlbible|bible)\b[^>]*\btranslation="([^"]*)"/i);
   const translation = extractTranslationName(translationMatch?.[1] ?? "Unknown");
   const books = [];
   const bookPattern = /<book\b[^>]*\bnumber="([^"]+)"[^>]*>([\s\S]*?)<\/book>/gi;

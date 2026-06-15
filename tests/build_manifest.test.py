@@ -42,6 +42,25 @@ class BuildManifestTests(unittest.TestCase):
         payload = json.dumps(entries)
         self.assertIn("Reina Valera 1909", payload)
 
+    def test_flat_root_files_get_human_language_labels(self):
+        from scripts.build_manifest import build_manifest_entries
+
+        entries = build_manifest_entries(
+            [{"path": "AcehBible.xml", "type": "blob"}]
+        )
+
+        self.assertEqual(
+            entries,
+            [
+                {
+                    "name": "AcehBible",
+                    "language": "AcehBible",
+                    "path": "AcehBible.xml",
+                    "rawUrl": "https://raw.githubusercontent.com/Beblia/Holy-Bible-XML-Format/master/AcehBible.xml",
+                }
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

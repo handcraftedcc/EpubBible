@@ -19,6 +19,13 @@ def humanize_name(path: str) -> str:
     return stem.replace("_", " ")
 
 
+def language_label(path: str) -> str:
+    parts = path.split("/", 1)
+    if len(parts) == 1:
+        return Path(path).stem
+    return parts[0]
+
+
 def build_manifest_entries(tree_entries: list[dict]) -> list[dict]:
     manifest = []
     for entry in tree_entries:
@@ -26,12 +33,10 @@ def build_manifest_entries(tree_entries: list[dict]) -> list[dict]:
         if entry.get("type") != "blob" or not path.endswith(".xml"):
             continue
 
-        parts = path.split("/", 1)
-        language = parts[0] if parts else "Unknown"
         manifest.append(
             {
                 "name": humanize_name(path),
-                "language": language,
+                "language": language_label(path),
                 "path": path,
                 "rawUrl": RAW_BASE_URL + path,
             }

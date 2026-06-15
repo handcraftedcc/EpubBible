@@ -25,7 +25,7 @@ export async function convertTranslation({
     const parsedBible = parseXml(xmlText);
     onStatus("Building EPUB files...");
     onStatus("Packaging ZIP...");
-    const artifact = buildZip(parsedBible);
+    const artifact = await buildZip(parsedBible);
     download(artifact.fileName, artifact.bytes);
     onStatus("Ready.");
     return artifact;
@@ -37,38 +37,38 @@ export async function convertTranslation({
 
 function getElements() {
   return {
-    searchInput: document.querySelector("#search"),
-    selectionSummary: document.querySelector("#selection-summary"),
-    translationList: document.querySelector("#translation-list"),
+    translationSelect: document.querySelector("#translation-select"),
     convertButton: document.querySelector("#convert-button"),
     statusMessage: document.querySelector("#status-message"),
     errorMessage: document.querySelector("#error-message"),
   };
 }
 
-function renderEmptyState(container, message) {
-  container.innerHTML = "";
-  const empty = document.createElement("div");
-  empty.className = "translation-empty";
-  empty.textContent = message;
-  container.append(empty);
+export function getSelectableTranslations(entries, query = "") {
+  return filterManifest(entries, query).map((entry) => ({
+    value: entry.path,
+    label: entry.name,
+    description: `${entry.language} · ${entry.path}`,
+  }));
 }
 
-function renderTranslations(container, entries, selectedPath, onSelect) {
-  container.innerHTML = "";
-  for (const entry of entries) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "translation-option";
-    button.setAttribute("role", "option");
-    button.setAttribute("aria-selected", String(entry.path === selectedPath));
-    button.dataset.path = entry.path;
-    button.innerHTML = `
-      <span class="translation-title">${entry.name}</span>
-      <span class="translation-meta">${entry.language} · ${entry.path}</span>
-    `;
-    button.addEventListener("click", () => onSelect(entry.path));
-    container.append(button);
+function renderSelectOptions(select, entries, selectedPath) {
+  const options = getSelectableTranslations(entries);
+  select.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = options.length === 0 ? "No translations available" : "Select a translation";
+  select.append(placeholder);
+
+  for (const option of options) {
+    const element = document.createElement("option");
+    element.value = option.value;
+    element.textContent = `${option.label} - ${option.description}`;
+    if (option.value === selectedPath) {
+      element.selected = true;
+    }
+    select.append(element);
   }
 }
 
@@ -76,7 +76,6 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
   const elements = getElements();
   const state = {
     entries: [],
-    query: "",
     selectedPath: null,
   };
 
@@ -93,39 +92,22 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
     elements.errorMessage.hidden = !message;
   }
 
-  function updateSelectionSummary() {
-    const entry = selectedEntry();
-    elements.selectionSummary.textContent = entry
-      ? `Selected: ${entry.name} (${entry.language})`
-      : "No translation selected.";
-    elements.convertButton.disabled = !entry;
-  }
-
-  function updateList() {
-    const filteredEntries = filterManifest(state.entries, state.query);
-    if (filteredEntries.length === 0) {
-      renderEmptyState(elements.translationList, "No translations match the current search.");
-      return;
-    }
-    renderTranslations(elements.translationList, filteredEntries, state.selectedPath, (path) => {
-      state.selectedPath = path;
-      updateSelectionSummary();
-      updateList();
-    });
+  function updateSelectionState() {
+    renderSelectOptions(elements.translationSelect, state.entries, state.selectedPath);
+    elements.convertButton.disabled = !selectedEntry();
   }
 
   async function init() {
     setError("");
     setStatus("Loading manifest...");
     state.entries = await manifestLoader();
-    updateSelectionSummary();
-    updateList();
+    updateSelectionState();
     setStatus("Manifest ready.");
   }
 
-  elements.searchInput.addEventListener("input", (event) => {
-    state.query = event.target.value;
-    updateList();
+  elements.translationSelect.addEventListener("change", (event) => {
+    state.selectedPath = event.target.value || null;
+    updateSelectionState();
   });
 
   elements.convertButton.addEventListener("click", async () => {
@@ -146,7 +128,7 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
       setError(error instanceof Error ? error.message : String(error));
     } finally {
       elements.convertButton.disabled = false;
-      updateSelectionSummary();
+      updateSelectionState();
     }
   });
 

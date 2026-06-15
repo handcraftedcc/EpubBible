@@ -37,7 +37,7 @@ const parsedBible = {
 };
 
 test("buildTranslationZip packages per-book epubs into testament folders", async () => {
-  const artifact = buildTranslationZip(parsedBible);
+  const artifact = await buildTranslationZip(parsedBible);
 
   assert.equal(artifact.fileName, "king_james_bible_epubs.zip");
   assert.ok(artifact.bytes instanceof Uint8Array);

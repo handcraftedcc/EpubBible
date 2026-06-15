@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { convertTranslation } from "../src/app.js";
+import { convertTranslation, getSelectableTranslations } from "../src/app.js";
 
 test("convertTranslation reports progress and downloads the built zip", async () => {
   const statuses = [];
@@ -71,4 +71,30 @@ test("convertTranslation annotates failures with the upstream source URL", async
     /https:\/\/example\.test\/source\.xml/,
   );
   assert.deepEqual(statuses, ["Downloading XML..."]);
+});
+
+test("getSelectableTranslations returns compact dropdown options", () => {
+  const options = getSelectableTranslations(
+    [
+      {
+        name: "AcehBible",
+        language: "AcehBible",
+        path: "AcehBible.xml",
+      },
+      {
+        name: "King James Bible",
+        language: "English",
+        path: "English/English_King_James_Bible.xml",
+      },
+    ],
+    "king",
+  );
+
+  assert.deepEqual(options, [
+    {
+      value: "English/English_King_James_Bible.xml",
+      label: "King James Bible",
+      description: "English · English/English_King_James_Bible.xml",
+    },
+  ]);
 });
