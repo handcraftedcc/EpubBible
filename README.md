@@ -1,6 +1,8 @@
-# EpubBible
+# Bible Epub Downloader
 
-Browser-based conversion tool for turning Bible XML files from the upstream Beblia repository into downloadable EPUB archives.
+A local browser-based downloader for turning Bible XML files from the upstream Beblia repository into ebook-friendly EPUB archives.
+
+Open the web app here: [Bible Epub Downloader](./index.html).
 
 ## What This Project Does
 
@@ -14,7 +16,7 @@ Browser-based conversion tool for turning Bible XML files from the upstream Bebl
 
 This repository does not contain, mirror, or vend the Bible XML source data.
 
-It provides a browser-based conversion interface for XML files published by the upstream Beblia `Holy-Bible-XML-Format` repository. The source texts remain in that upstream project, and this repo only stores:
+It provides a browser-based conversion interface that runs on your local system for XML files published by the upstream Beblia [`Holy-Bible-XML-Format`](https://github.com/Beblia/Holy-Bible-XML-Format) repository. The app fetches the source XML from that upstream project and converts it into a ZIP of EPUB files, organized by Old Testament, New Testament, and individual books. This repo only stores:
 
 - the web app
 - the generated source manifest
@@ -73,6 +75,14 @@ The script writes:
 
 There is also a GitHub Actions workflow at [build-manifest.yml](/Users/dominiklange/Documents/GitHub/EpubBible/.github/workflows/build-manifest.yml) for scheduled or manual refreshes.
 
+To refresh it from GitHub:
+
+1. Open the repo `Actions` tab
+2. Open `Build Manifest`
+3. Click `Run workflow`
+
+If the upstream manifest changed, the workflow will commit the updated [public/manifest.json](/Users/dominiklange/Documents/GitHub/EpubBible/public/manifest.json) back to the repository automatically.
+
 ## Running Tests
 
 JavaScript tests:
@@ -100,3 +110,7 @@ The site is set up to work as a static root-hosted site. For GitHub Pages, the s
 - conversion depends on the upstream raw XML URL being reachable from the browser
 - XML variations outside the expected Beblia structure may need additional parsing hardening
 - generating many EPUB files in one browser session may be memory-intensive on lower-powered devices
+
+## About AI Usage
+
+This project was developed with help from AI coding agents. The agents assisted with implementation, copy editing, and review, while the final structure, behavior, and published wording were chosen and validated by the maintainer.

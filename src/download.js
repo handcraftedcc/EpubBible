@@ -1,6 +1,33 @@
 import { buildBookEpub, buildBookEpubEntries, slugify } from "./epubBuilder.js";
 import { createZipArchive } from "./zip.js";
 
+function titleizeWord(word, sourceHadSpaces) {
+  if (!word) {
+    return word;
+  }
+  if (/^\d+$/.test(word)) {
+    return word;
+  }
+  if (!sourceHadSpaces && /^[a-z]{2,4}$/.test(word)) {
+    return word.toUpperCase();
+  }
+  if (/^[A-Z0-9]{2,}$/.test(word)) {
+    return word;
+  }
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+export function formatZipFileName(translation) {
+  const raw = String(translation ?? "Unknown").trim();
+  const sourceHadSpaces = /\s/.test(raw);
+  const normalized = raw.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim() || "Unknown";
+  const title = normalized
+    .split(" ")
+    .map((word) => titleizeWord(word, sourceHadSpaces))
+    .join(" ");
+  return `${title} Epubs.zip`;
+}
+
 function getJsZip() {
   if (typeof globalThis !== "undefined" && globalThis.JSZip) {
     return globalThis.JSZip;
@@ -42,7 +69,7 @@ export async function buildTranslationZip(parsedBible) {
       zip.file(artifact.zipPath, artifact.bytes);
     }
     return {
-      fileName: `${slugify(parsedBible.translation)}_epubs.zip`,
+      fileName: formatZipFileName(parsedBible.translation),
       bytes: await zip.generateAsync({
         type: "uint8array",
         mimeType: "application/zip",
@@ -52,7 +79,7 @@ export async function buildTranslationZip(parsedBible) {
   }
 
   return {
-    fileName: `${slugify(parsedBible.translation)}_epubs.zip`,
+    fileName: formatZipFileName(parsedBible.translation),
     bytes: createZipArchive(
       bookArtifacts.map((artifact) => ({
         name: artifact.zipPath,

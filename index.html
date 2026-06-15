@@ -3,61 +3,47 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bible XML to EPUB ZIP</title>
+    <title>Bible Epub Downloader</title>
     <link rel="stylesheet" href="./public/styles.css" />
   </head>
   <body>
     <main class="app">
       <header class="hero">
         <p class="eyebrow">Browser-Based Converter</p>
-        <h1>Bible XML to EPUB ZIP</h1>
+        <h1>Bible Epub Downloader</h1>
         <p class="intro">
-          This project does not store Bible XML data. It helps you browse and convert XML files
-          published by the upstream Beblia Holy-Bible-XML-Format repository.
+          This local browser tool fetches Bible XML from the upstream Beblia
+          <a href="https://github.com/Beblia/Holy-Bible-XML-Format">Holy-Bible-XML-Format</a>
+          repository and converts it into a ZIP of EPUB files, sorted by Old Testament, New
+          Testament, and book.
         </p>
       </header>
 
       <section class="panel controls" aria-labelledby="controls-title">
         <div class="panel-heading">
           <h2 id="controls-title">Choose a Translation</h2>
-          <p>Select one source XML file and generate a ZIP of per-book EPUBs.</p>
+          <p>Filter the list and download a ZIP of per-book EPUBs directly from the matching row.</p>
         </div>
 
         <label class="field" for="translation-search">
           <span>Translation</span>
-          <div class="combobox" data-combobox>
-            <button
-              id="translation-toggle"
-              class="combobox-toggle"
-              type="button"
-              aria-expanded="false"
-              aria-controls="translation-options"
-            >
-              Loading translations...
-            </button>
-            <div id="translation-popover" class="combobox-popover" hidden>
-              <input
-                id="translation-search"
-                class="combobox-search"
-                name="translation-search"
-                type="search"
-                placeholder="Search by language or translation"
-                autocomplete="off"
-                autocapitalize="none"
-                spellcheck="false"
-              />
-              <ul
-                id="translation-options"
-                class="combobox-options"
-                role="listbox"
-                aria-label="Available translations"
-              ></ul>
-            </div>
-          </div>
+          <input
+            id="translation-search"
+            class="translation-search"
+            name="translation-search"
+            type="search"
+            placeholder="Search by language or translation"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+          />
         </label>
 
+        <div id="results-meta" class="results-meta" aria-live="polite">Loading translations...</div>
+        <div id="translation-list" class="translation-list" aria-live="polite"></div>
+
         <div class="actions">
-          <button id="convert-button" type="button" disabled>Generate Epubs Zip</button>
+          <button id="load-more-button" type="button" hidden>Load More</button>
         </div>
       </section>
 

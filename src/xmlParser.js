@@ -10,15 +10,46 @@ export function extractTranslationName(translation) {
   if (markerIndex !== -1) {
     name = name.slice(0, markerIndex).trim();
   }
+  const copyrightMatch = name.match(/\s+-\s+copyright\b/i);
+  if (copyrightMatch?.index !== undefined) {
+    name = name.slice(0, copyrightMatch.index).trim();
+  }
   if (name.startsWith("English ")) {
     name = name.slice("English ".length);
   }
   return name || "Unknown";
 }
 
-export function parseBibleXml(xmlText) {
+function humanizeCompactName(text) {
+  return String(text)
+    .replace(/\.xml$/i, "")
+    .replace(/([A-Z]+)([0-9]+)/g, "$1 $2")
+    .replace(/([a-z])([A-Z0-9])/g, "$1 $2")
+    .replace(/([0-9])([A-Za-z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function titleFromManifestEntry(entry = {}) {
+  const candidates = [entry.name, entry.language, entry.path];
+  for (const candidate of candidates) {
+    const humanized = humanizeCompactName(candidate ?? "");
+    if (humanized) {
+      return humanized;
+    }
+  }
+  return "Unknown";
+}
+
+export function parseBibleXml(xmlText, fallbackEntry = null) {
   const translationMatch = xmlText.match(/<(?:xmlbible|bible)\b[^>]*\btranslation="([^"]*)"/i);
-  const translation = extractTranslationName(translationMatch?.[1] ?? "Unknown");
+  const nameMatch = xmlText.match(/<bible\b[^>]*\bname="([^"]*)"/i);
+  const languageMatch = xmlText.match(/<bible\b[^>]*\blanguage="([^"]*)"/i);
+  const translation = extractTranslationName(
+    translationMatch?.[1] ?? nameMatch?.[1] ?? languageMatch?.[1] ?? titleFromManifestEntry(fallbackEntry) ?? "Unknown",
+  );
   const books = [];
   const bookPattern = /<book\b[^>]*\bnumber="([^"]+)"[^>]*>([\s\S]*?)<\/book>/gi;
 

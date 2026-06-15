@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   convertTranslation,
-  createComboboxState,
   getSelectableTranslations,
-  selectComboboxOption,
+  getVisibleTranslations,
+  shouldShowMoreButton,
 } from "../src/app.js";
 
 test("convertTranslation reports progress and downloads the built zip", async () => {
@@ -78,7 +78,7 @@ test("convertTranslation annotates failures with the upstream source URL", async
   assert.deepEqual(statuses, ["Downloading XML..."]);
 });
 
-test("getSelectableTranslations returns compact dropdown options", () => {
+test("getSelectableTranslations returns row data for the filterable list", () => {
   const options = getSelectableTranslations(
     [
       {
@@ -104,8 +104,8 @@ test("getSelectableTranslations returns compact dropdown options", () => {
   ]);
 });
 
-test("createComboboxState filters options and limits visible results", () => {
-  const state = createComboboxState(
+test("getVisibleTranslations returns the first chunk of filtered rows", () => {
+  const visible = getVisibleTranslations(
     [
       { value: "1", label: "AcehBible", description: "AcehBible · AcehBible.xml" },
       { value: "2", label: "King James Bible", description: "English · English_King_James_Bible.xml" },
@@ -113,25 +113,18 @@ test("createComboboxState filters options and limits visible results", () => {
     ],
     {
       query: "bible",
-      isOpen: true,
-      selectedValue: "2",
-      maxResults: 2,
+      visibleCount: 2,
     },
   );
 
-  assert.equal(state.buttonLabel, "King James Bible");
-  assert.equal(state.filteredOptions.length, 2);
+  assert.equal(visible.filteredCount, 2);
   assert.deepEqual(
-    state.filteredOptions.map((option) => option.label),
+    visible.rows.map((option) => option.label),
     ["AcehBible", "King James Bible"],
   );
 });
 
-test("selectComboboxOption clears the search query and closes the list", () => {
-  const next = selectComboboxOption("English/English_King_James_Bible.xml");
-  assert.deepEqual(next, {
-    query: "",
-    isOpen: false,
-    selectedValue: "English/English_King_James_Bible.xml",
-  });
+test("shouldShowMoreButton only appears when filtered results exceed the visible count", () => {
+  assert.equal(shouldShowMoreButton({ filteredCount: 25, visibleCount: 20 }), true);
+  assert.equal(shouldShowMoreButton({ filteredCount: 20, visibleCount: 20 }), false);
 });

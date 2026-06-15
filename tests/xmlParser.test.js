@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 import { BOOK_NAMES, testamentSubdir } from "../src/bibleBooks.js";
-import { extractTranslationName, parseBibleXml } from "../src/xmlParser.js";
+import { extractTranslationName, parseBibleXml, titleFromManifestEntry } from "../src/xmlParser.js";
 
 const fixturePath = new URL("./fixtures/sample_bible.xml", import.meta.url);
 
@@ -68,4 +68,68 @@ test("parseBibleXml handles real upstream bible root elements", () => {
   assert.equal(parsed.translation, "Aceh Language (Alkitab HABA GET)");
   assert.equal(parsed.books.length, 1);
   assert.equal(parsed.books[0].title, "Genesis");
+});
+
+test("parseBibleXml falls back to the bible name attribute when translation is absent", () => {
+  const xmlText = `\uFEFF<?xml version="1.0" encoding="utf-8"?>
+  <bible name="English Amplified - Copyright 2015">
+    <testament name="Old">
+      <book number="1">
+        <chapter number="1">
+          <verse number="1">In the beginning.</verse>
+        </chapter>
+      </book>
+    </testament>
+  </bible>`;
+
+  const parsed = parseBibleXml(xmlText);
+  assert.equal(parsed.translation, "Amplified");
+  assert.equal(parsed.books.length, 1);
+});
+
+test("parseBibleXml falls back to the bible language attribute when translation and name are absent", () => {
+  const xmlText = `\uFEFF<?xml version="1.0" encoding="utf-8"?>
+  <bible language="Basque (Navarro-Labourdin Basque) - No Year">
+    <testament name="Old">
+      <book number="1">
+        <chapter number="1">
+          <verse number="1">In the beginning.</verse>
+        </chapter>
+      </book>
+    </testament>
+  </bible>`;
+
+  const parsed = parseBibleXml(xmlText);
+  assert.equal(parsed.translation, "Basque (Navarro-Labourdin Basque) - No Year");
+});
+
+test("titleFromManifestEntry humanizes compact upstream names", () => {
+  assert.equal(
+    titleFromManifestEntry({ name: "EnglishAmplifiedBible", language: "EnglishAmplifiedBible", path: "EnglishAmplifiedBible.xml" }),
+    "English Amplified Bible",
+  );
+  assert.equal(
+    titleFromManifestEntry({ name: "ESV2016Bible", language: "ESV2016Bible", path: "ESV2016Bible.xml" }),
+    "ESV 2016 Bible",
+  );
+});
+
+test("parseBibleXml falls back to manifest metadata when xml title metadata is absent", () => {
+  const xmlText = `\uFEFF<?xml version="1.0" encoding="utf-8"?>
+  <bible>
+    <testament name="Old">
+      <book number="1">
+        <chapter number="1">
+          <verse number="1">In the beginning.</verse>
+        </chapter>
+      </book>
+    </testament>
+  </bible>`;
+
+  const parsed = parseBibleXml(xmlText, {
+    name: "EnglishAmplifiedBible",
+    language: "EnglishAmplifiedBible",
+    path: "EnglishAmplifiedBible.xml",
+  });
+  assert.equal(parsed.translation, "Amplified Bible");
 });

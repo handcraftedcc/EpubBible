@@ -2,6 +2,8 @@ import { filterManifest, loadManifest } from "./manifest.js";
 import { buildTranslationZip, triggerDownload } from "./download.js";
 import { parseBibleXml } from "./xmlParser.js";
 
+const PAGE_SIZE = 20;
+
 async function fetchXmlText(url, fetchImpl = fetch) {
   const response = await fetchImpl(url);
   if (!response.ok) {
@@ -22,7 +24,7 @@ export async function convertTranslation({
   try {
     const xmlText = await fetchXml(entry.rawUrl);
     onStatus("Parsing XML...");
-    const parsedBible = parseXml(xmlText);
+    const parsedBible = parseXml(xmlText, entry);
     onStatus("Building EPUB files...");
     onStatus("Packaging ZIP...");
     const artifact = await buildZip(parsedBible);
@@ -37,12 +39,10 @@ export async function convertTranslation({
 
 function getElements() {
   return {
-    combobox: document.querySelector("[data-combobox]"),
-    translationToggle: document.querySelector("#translation-toggle"),
-    translationPopover: document.querySelector("#translation-popover"),
     translationSearch: document.querySelector("#translation-search"),
-    translationOptions: document.querySelector("#translation-options"),
-    convertButton: document.querySelector("#convert-button"),
+    resultsMeta: document.querySelector("#results-meta"),
+    translationList: document.querySelector("#translation-list"),
+    loadMoreButton: document.querySelector("#load-more-button"),
     statusMessage: document.querySelector("#status-message"),
     errorMessage: document.querySelector("#error-message"),
   };
@@ -56,64 +56,53 @@ export function getSelectableTranslations(entries, query = "") {
   }));
 }
 
-export function createComboboxState(options, { query = "", isOpen = false, selectedValue = null, maxResults = 25 } = {}) {
-  const filteredOptions = getSelectableTranslations(
-    options.map((option) => ({
-      name: option.label,
-      language: option.description.split(" · ")[0] ?? "",
-      path: option.value,
-    })),
-    query,
-  ).slice(0, maxResults);
-
-  const selectedOption = options.find((option) => option.value === selectedValue) ?? null;
-
+export function getVisibleTranslations(entries, { query = "", visibleCount = PAGE_SIZE } = {}) {
+  const filtered = (query ?? "").trim().toLowerCase();
+  const rows = filtered
+    ? entries.filter((entry) => `${entry.label} ${entry.description}`.toLowerCase().includes(filtered))
+    : [...entries];
   return {
-    query,
-    isOpen,
-    selectedValue,
-    buttonLabel: selectedOption?.label ?? "Select a translation",
-    filteredOptions,
+    filteredCount: rows.length,
+    rows: rows.slice(0, visibleCount),
   };
 }
 
-export function selectComboboxOption(value) {
-  return {
-    query: "",
-    isOpen: false,
-    selectedValue: value,
-  };
+export function shouldShowMoreButton({ filteredCount, visibleCount }) {
+  return filteredCount > visibleCount;
 }
 
-function renderCombobox(elements, entries, state) {
-  const options = getSelectableTranslations(entries);
-  const comboboxState = createComboboxState(options, state);
+function renderResultsMeta(element, filteredCount) {
+  if (filteredCount === 0) {
+    element.textContent = "No matching translations.";
+    return;
+  }
+  element.textContent = `${filteredCount} matching translation${filteredCount === 1 ? "" : "s"}`;
+}
 
-  elements.translationToggle.textContent = comboboxState.buttonLabel;
-  elements.translationToggle.setAttribute("aria-expanded", String(comboboxState.isOpen));
-  elements.translationPopover.hidden = !comboboxState.isOpen;
-  elements.translationSearch.value = comboboxState.query;
-  elements.translationOptions.innerHTML = "";
+function renderTranslationRows(container, rows) {
+  container.innerHTML = "";
 
-  if (comboboxState.filteredOptions.length === 0) {
-    const empty = document.createElement("li");
-    empty.className = "combobox-empty";
-    empty.textContent = "No translations match your search.";
-    elements.translationOptions.append(empty);
+  if (rows.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "translation-empty";
+    empty.textContent = "No translations match the current filter.";
+    container.append(empty);
     return;
   }
 
-  for (const option of comboboxState.filteredOptions) {
-    const item = document.createElement("li");
-    item.className = "combobox-option";
-    item.setAttribute("role", "option");
-    item.setAttribute("aria-selected", String(option.value === comboboxState.selectedValue));
-    item.dataset.value = option.value;
-    item.innerHTML = `
-      <span class="combobox-option-label">${option.label}</span>
-      <span class="combobox-option-description">${option.description}</span>
+  for (const row of rows) {
+    const article = document.createElement("article");
+    article.className = "translation-row";
+    article.innerHTML = `
+      <div>
+        <span class="translation-row-title">${row.label}</span>
+        <span class="translation-row-description">${row.description}</span>
+      </div>
+      <div class="translation-row-action">
+        <button type="button" data-path="${row.value}">Download EPUB ZIP</button>
+      </div>
     `;
-    elements.translationOptions.append(item);
+    container.append(article);
   }
 }
 
@@ -122,13 +111,9 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
   const state = {
     entries: [],
     query: "",
-    isOpen: false,
-    selectedPath: null,
+    visibleCount: PAGE_SIZE,
+    activePath: null,
   };
-
-  function selectedEntry() {
-    return state.entries.find((entry) => entry.path === state.selectedPath) ?? null;
-  }
 
   function setStatus(message) {
     elements.statusMessage.textContent = message;
@@ -139,64 +124,58 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
     elements.errorMessage.hidden = !message;
   }
 
-  function updateSelectionState() {
-    renderCombobox(elements, state.entries, {
-      query: state.query,
-      isOpen: state.isOpen,
-      selectedValue: state.selectedPath,
+  function findEntry(path) {
+    return state.entries.find((entry) => entry.path === path) ?? null;
+  }
+
+  function render() {
+    const rows = getSelectableTranslations(state.entries, state.query);
+    const visible = getVisibleTranslations(rows, {
+      visibleCount: state.visibleCount,
     });
-    elements.convertButton.disabled = !selectedEntry();
+
+    renderResultsMeta(elements.resultsMeta, visible.filteredCount);
+    renderTranslationRows(elements.translationList, visible.rows);
+    elements.loadMoreButton.hidden = !shouldShowMoreButton({
+      filteredCount: visible.filteredCount,
+      visibleCount: state.visibleCount,
+    });
   }
 
   async function init() {
     setError("");
     setStatus("Loading manifest...");
     state.entries = await manifestLoader();
-    updateSelectionState();
+    render();
     setStatus("Manifest ready.");
   }
 
-  elements.translationToggle.addEventListener("click", () => {
-    state.isOpen = !state.isOpen;
-    updateSelectionState();
-    if (state.isOpen) {
-      elements.translationSearch.focus();
-    }
-  });
-
   elements.translationSearch.addEventListener("input", (event) => {
     state.query = event.target.value;
-    state.isOpen = true;
-    updateSelectionState();
+    state.visibleCount = PAGE_SIZE;
+    render();
   });
 
-  elements.translationOptions.addEventListener("click", (event) => {
-    const option = event.target.closest(".combobox-option");
-    if (!option) {
+  elements.loadMoreButton.addEventListener("click", () => {
+    state.visibleCount += PAGE_SIZE;
+    render();
+  });
+
+  elements.translationList.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-path]");
+    if (!button) {
       return;
     }
-    const next = selectComboboxOption(option.dataset.value);
-    state.query = next.query;
-    state.isOpen = next.isOpen;
-    state.selectedPath = next.selectedValue;
-    updateSelectionState();
-  });
 
-  document.addEventListener("click", (event) => {
-    if (!elements.combobox.contains(event.target)) {
-      state.isOpen = false;
-      updateSelectionState();
-    }
-  });
-
-  elements.convertButton.addEventListener("click", async () => {
-    const entry = selectedEntry();
+    const entry = findEntry(button.dataset.path);
     if (!entry) {
       return;
     }
 
+    state.activePath = entry.path;
     setError("");
-    elements.convertButton.disabled = true;
+    button.disabled = true;
+
     try {
       await convertTranslation({
         entry,
@@ -206,8 +185,8 @@ export function createApp({ manifestLoader = loadManifest } = {}) {
       setStatus("Conversion failed.");
       setError(error instanceof Error ? error.message : String(error));
     } finally {
-      elements.convertButton.disabled = false;
-      updateSelectionState();
+      state.activePath = null;
+      button.disabled = false;
     }
   });
 

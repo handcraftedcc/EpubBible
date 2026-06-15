@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { buildTranslationZip } from "../src/download.js";
+import { buildTranslationZip, formatZipFileName } from "../src/download.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -39,7 +39,7 @@ const parsedBible = {
 test("buildTranslationZip packages per-book epubs into testament folders", async () => {
   const artifact = await buildTranslationZip(parsedBible);
 
-  assert.equal(artifact.fileName, "king_james_bible_epubs.zip");
+  assert.equal(artifact.fileName, "King James Bible Epubs.zip");
   assert.ok(artifact.bytes instanceof Uint8Array);
 
   const tempDir = await mkdtemp(join(tmpdir(), "epub-bible-"));
@@ -58,4 +58,11 @@ test("buildTranslationZip packages per-book epubs into testament folders", async
 
   assert.match(stdout, /Old Testament\/01 Genesis\.epub/);
   assert.match(stdout, /New Testament\/40 Matthew\.epub/);
+});
+
+test("formatZipFileName produces human-readable capitalized names", () => {
+  assert.equal(formatZipFileName("esv_2016"), "ESV 2016 Epubs.zip");
+  assert.equal(formatZipFileName("nlt"), "NLT Epubs.zip");
+  assert.equal(formatZipFileName("passion_translation_bible_2020"), "Passion Translation Bible 2020 Epubs.zip");
+  assert.equal(formatZipFileName("King James Bible"), "King James Bible Epubs.zip");
 });
