@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xmlbible translation="English King James Bible == Public Domain">
+  <book number="1">
+    <chapter number="1">
+      <verse number="1">In the <note>beginning</note> God created the heaven and the earth.</verse>
+      <verse number="2">And the earth was without form, and void.</verse>
+    </chapter>
+    <chapter number="2">
+      <verse number="1">Thus the heavens and the earth were finished.</verse>
+    </chapter>
+  </book>
+  <book number="40">
+    <chapter number="1">
+      <verse number="1">The book of the generation of Jesus Christ.</verse>
+    </chapter>
+  </book>
+  <book number="999">
+    <chapter number="1">
+      <verse number="1">Ignored invalid book.</verse>
+    </chapter>
+  </book>
+</xmlbible>

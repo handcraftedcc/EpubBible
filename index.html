@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bible XML to EPUB ZIP</title>
+    <link rel="stylesheet" href="./public/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="hero">
+        <p class="eyebrow">Browser-Based Converter</p>
+        <h1>Bible XML to EPUB ZIP</h1>
+        <p class="intro">
+          This project does not store Bible XML data. It helps you browse and convert XML files
+          published by the upstream Beblia Holy-Bible-XML-Format repository.
+        </p>
+      </header>
+
+      <section class="panel controls" aria-labelledby="controls-title">
+        <div class="panel-heading">
+          <h2 id="controls-title">Choose a Translation</h2>
+          <p>Search the generated manifest, select one source XML file, and generate a ZIP of per-book EPUBs.</p>
+        </div>
+
+        <label class="field" for="search">
+          <span>Search</span>
+          <input id="search" name="search" type="search" placeholder="Search by language or translation" />
+        </label>
+
+        <div id="selection-summary" class="selection-summary" aria-live="polite">No translation selected.</div>
+        <div id="translation-list" class="translation-list" role="listbox" aria-label="Available translations"></div>
+
+        <div class="actions">
+          <button id="convert-button" type="button" disabled>Generate ZIP</button>
+        </div>
+      </section>
+
+      <section class="panel status-panel" aria-labelledby="status-title">
+        <h2 id="status-title">Status</h2>
+        <p id="status-message" aria-live="polite">Loading manifest...</p>
+        <p id="error-message" class="error-message" aria-live="assertive" hidden></p>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
